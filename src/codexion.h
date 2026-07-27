@@ -42,6 +42,7 @@ typedef struct s_hnode
 {
 	int		id;
 	long	key;
+	long	seq;
 }	t_hnode;
 
 typedef struct s_heap
@@ -95,6 +96,7 @@ void	init_coders(t_sim *sim);
 void	init_dongles(t_sim *sim);
 int		init_heap(t_sim *sim);
 
+int		log_running(t_sim *sim, int id, char *state);
 void	*coder_routine(void *arg);
 void	start_coders(t_sim *sim);
 void	join_coders(t_sim *sim);
@@ -105,12 +107,13 @@ void	ms_to_timespec(long ms_from_now, struct timespec *ts);
 void	log_state(t_sim *sim, int id, char *state);
 
 int		dongle_free(t_sim *sim, int index);
+long	dongle_wait_ms(t_sim *sim, int id);
 int		can_compile(t_sim *sim, int id);
 void	take_dongles(t_sim *sim, int id);
 void	release_dongles(t_sim *sim, int id);
 
 int		acquire(t_sim *sim, int id);
-void	release(t_sim *sim, int id);
+int		release(t_sim *sim, int id);
 int		is_my_turn(t_sim *sim, int id);
 long	queue_key(t_sim *sim, int id);
 
@@ -124,9 +127,14 @@ void	cleanup_sim(t_sim *sim);
 void	free_arrays(t_sim *sim);
 
 int		higher_priority(t_hnode a, t_hnode b);
+int		heap_find(t_heap *heap, int id);
+void	heap_remove(t_heap *heap, int i);
+int		shares_dongle(int a, int b, int n);
+int		blocked_by_queue(t_sim *sim, int id);
 
-void	heap_push(t_heap *heap, int id, long key);
 void	swap(t_hnode *a, t_hnode *b);
-t_hnode	heap_pop(t_heap *heap);
+void	sift_up(t_heap *heap, int i);
+void	sift_down(t_heap *heap, int i);
+void	heap_push(t_heap *heap, int id, long key, long seq);
 
 #endif

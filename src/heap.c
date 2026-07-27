@@ -12,21 +12,6 @@
 
 #include "codexion.h"
 
-void	heap_push(t_heap *heap, int id, long key)
-{
-	int	i;
-
-	heap->nodes[heap->size].id = id;
-	heap->nodes[heap->size].key = key;
-	i = heap->size;
-	heap->size++;
-	while (i > 0 && higher_priority(heap->nodes[i], heap->nodes[(i - 1) / 2]))
-	{
-		swap(&heap->nodes[i], &heap->nodes[(i - 1) / 2]);
-		i = (i - 1) / 2;
-	}
-}
-
 void	swap(t_hnode *a, t_hnode *b)
 {
 	t_hnode	tmp;
@@ -36,16 +21,19 @@ void	swap(t_hnode *a, t_hnode *b)
 	*b = tmp;
 }
 
-t_hnode	heap_pop(t_heap *heap)
+void	sift_up(t_heap *heap, int i)
 {
-	t_hnode	top;
-	int		i;
-	int		child;
+	while (i > 0 && higher_priority(heap->nodes[i], heap->nodes[(i - 1) / 2]))
+	{
+		swap(&heap->nodes[i], &heap->nodes[(i - 1) / 2]);
+		i = (i - 1) / 2;
+	}
+}
 
-	top = heap->nodes[0];
-	heap->nodes[0] = heap->nodes[heap->size - 1];
-	heap->size--;
-	i = 0;
+void	sift_down(t_heap *heap, int i)
+{
+	int	child;
+
 	while (2 * i + 1 < heap->size)
 	{
 		child = 2 * i + 1;
@@ -57,5 +45,13 @@ t_hnode	heap_pop(t_heap *heap)
 		swap(&heap->nodes[i], &heap->nodes[child]);
 		i = child;
 	}
-	return (top);
+}
+
+void	heap_push(t_heap *heap, int id, long key, long seq)
+{
+	heap->nodes[heap->size].id = id;
+	heap->nodes[heap->size].key = key;
+	heap->nodes[heap->size].seq = seq;
+	heap->size++;
+	sift_up(heap, heap->size - 1);
 }

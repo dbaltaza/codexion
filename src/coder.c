@@ -12,6 +12,19 @@
 
 #include "codexion.h"
 
+int	log_running(t_sim *sim, int id, char *state)
+{
+	pthread_mutex_lock(&sim->lock);
+	if (sim->stop)
+	{
+		pthread_mutex_unlock(&sim->lock);
+		return (0);
+	}
+	log_state(sim, id, state);
+	pthread_mutex_unlock(&sim->lock);
+	return (1);
+}
+
 void	*coder_routine(void *arg)
 {
 	t_coder	*coder;
@@ -21,12 +34,12 @@ void	*coder_routine(void *arg)
 	{
 		if (!acquire(coder->sim, coder->id))
 			break ;
-		log_state(coder->sim, coder->id, "is compiling");
 		usleep(coder->sim->cfg.time_to_compile * 1000);
-		release(coder->sim, coder->id);
-		log_state(coder->sim, coder->id, "is debugging");
+		if (!release(coder->sim, coder->id))
+			break ;
 		usleep(coder->sim->cfg.time_to_debug * 1000);
-		log_state(coder->sim, coder->id, "is refactoring");
+		if (!log_running(coder->sim, coder->id, "is refactoring"))
+			break ;
 		usleep(coder->sim->cfg.time_to_refactor * 1000);
 	}
 	return (NULL);

@@ -15,14 +15,13 @@
 long	queue_key(t_sim *sim, int id)
 {
 	if (sim->cfg.scheduler == POLICY_FIFO)
-		return (sim->seq++);
+		return (0);
 	return (sim->coders[id - 1].last_compile_start + sim->cfg.time_to_burnout);
 }
 
 int	is_my_turn(t_sim *sim, int id)
 {
-	return (sim->queue.size > 0 && sim->queue.nodes[0].id == id
-		&& can_compile(sim, id));
+	return (!blocked_by_queue(sim, id) && can_compile(sim, id));
 }
 
 int	acquire(t_sim *sim, int id)
@@ -30,10 +29,10 @@ int	acquire(t_sim *sim, int id)
 	struct timespec	deadline;
 
 	pthread_mutex_lock(&sim->lock);
-	heap_push(&sim->queue, id, queue_key(sim, id));
+	heap_push(&sim->queue, id, queue_key(sim, id), sim->seq++);
 	while (!sim->stop && !is_my_turn(sim, id))
 	{
-		ms_to_timespec(sim->cfg.dongle_cooldown, &deadline);
+		ms_to_timespec(dongle_wait_ms(sim, id), &deadline);
 		pthread_cond_timedwait(&sim->avail, &sim->lock, &deadline);
 	}
 	if (sim->stop)
@@ -41,17 +40,24 @@ int	acquire(t_sim *sim, int id)
 		pthread_mutex_unlock(&sim->lock);
 		return (0);
 	}
-	heap_pop(&sim->queue);
+	heap_remove(&sim->queue, heap_find(&sim->queue, id));
 	take_dongles(sim, id);
+	pthread_cond_broadcast(&sim->avail);
 	pthread_mutex_unlock(&sim->lock);
 	return (1);
 }
 
-void	release(t_sim *sim, int id)
+int	release(t_sim *sim, int id)
 {
+	int	running;
+
 	pthread_mutex_lock(&sim->lock);
 	sim->coders[id - 1].counter++;
 	release_dongles(sim, id);
+	running = !sim->stop;
+	if (running)
+		log_state(sim, id, "is debugging");
 	pthread_cond_broadcast(&sim->avail);
 	pthread_mutex_unlock(&sim->lock);
+	return (running);
 }

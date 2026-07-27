@@ -21,6 +21,23 @@ int	dongle_free(t_sim *sim, int index)
 		&& now - sim->dongles[index].released_at >= sim->cfg.dongle_cooldown);
 }
 
+long	dongle_wait_ms(t_sim *sim, int id)
+{
+	long	now;
+	long	a;
+	long	b;
+
+	now = now_ms();
+	a = sim->dongles[id - 1].released_at + sim->cfg.dongle_cooldown - now;
+	b = sim->dongles[id % sim->cfg.n_coders].released_at
+		+ sim->cfg.dongle_cooldown - now;
+	if (b > a)
+		a = b;
+	if (a < 1)
+		return (100);
+	return (a);
+}
+
 int	can_compile(t_sim *sim, int id)
 {
 	int	i;
@@ -44,6 +61,7 @@ void	take_dongles(t_sim *sim, int id)
 	sim->coders[id - 1].last_compile_start = now_ms();
 	log_state(sim, id, "has taken a dongle");
 	log_state(sim, id, "has taken a dongle");
+	log_state(sim, id, "is compiling");
 }
 
 void	release_dongles(t_sim *sim, int id)
